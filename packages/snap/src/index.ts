@@ -1,5 +1,10 @@
-import { OnRpcRequestHandler } from '@metamask/snaps-types';
-import { panel, text } from '@metamask/snaps-ui';
+import { OnRpcRequestHandler, OnTransactionHandler } from '@metamask/snaps-types';
+import { heading, panel, text, copyable } from '@metamask/snaps-ui';
+
+async function getFees() {
+  const response = await fetch('https://beaconcha.in/api/v1/execution/gasnow'); 
+  return response.json();
+}
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -11,19 +16,18 @@ import { panel, text } from '@metamask/snaps-ui';
  * @returns The result of `snap_dialog`.
  * @throws If the request method is not valid for this snap.
  */
-export const onRpcRequest: OnRpcRequestHandler = ({ origin, request }) => {
+export const onRpcRequest: OnRpcRequestHandler = async ({ origin, request }) => {
   switch (request.method) {
     case 'hello':
+      const fees = await getFees();
       return snap.request({
         method: 'snap_dialog',
         params: {
           type: 'confirmation',
           content: panel([
             text(`Hello, **${origin}**!`),
-            text('This custom confirmation is just for display purposes.'),
-            text(
-              'But you can edit the snap source code to make it do something, if you want to!',
-            ),
+            text(`Current price of ETH in USD: $${fees.data.priceUSD}`),
+            copyable(JSON.stringify(fees))
           ]),
         },
       });
@@ -31,3 +35,12 @@ export const onRpcRequest: OnRpcRequestHandler = ({ origin, request }) => {
       throw new Error('Method not found.');
   }
 };
+
+export const onTransaction: OnTransactionHandler = async ({ transaction }) => {
+  return {
+    content: panel([
+      heading('Transaction insights snap'),
+      text(`Hello world!`)
+    ]),
+  };
+}
